@@ -68,22 +68,16 @@ class Chatter:
             ip_address + " " + str(self.udp_port) + "\n"
 
     def send_msg_helo(self):
-        try:
-            self.tcp_socket.send(self.msg_helo.encode())
-            # To fix getting partial response from the server
-            msg_expected = ' '
-            while msg_expected[-1] != '\n':
-                msg_received = self.tcp_socket.recv(BUFFER_SIZE)
-                msg_received = msg_received.decode("utf-8")
-                msg_expected += msg_received
-            msg_expected = msg_expected[1:]
-            #print("msg_from_server =", msg_expected)
-            self.deal_server_response_to_helo(msg_expected)
-        except Exception as e:
-            print(e)
-            raise(e)
-        finally:
-            self.tcp_socket.close()
+        self.tcp_socket.send(self.msg_helo.encode())
+        # To fix getting partial response from the server
+        msg_expected = ' '
+        while msg_expected[-1] != '\n':
+            msg_received = self.tcp_socket.recv(BUFFER_SIZE)
+            msg_received = msg_received.decode("utf-8")
+            msg_expected += msg_received
+        msg_expected = msg_expected[1:]
+        #print("msg_from_server =", msg_expected)
+        self.deal_server_response_to_helo(msg_expected)
 
     def deal_server_response_to_helo(self, msg):
         if msg.startswith("ACPT"):
@@ -113,15 +107,9 @@ class Chatter:
         # Create a UDP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         data = msg.encode()
-        try:
-            for name in self.peers:
-                server_address = self.peers[name]
-                sock.sendto(data, server_address)
-        except Exception as e:
-            print("Unable to send UDP messages")
-            print(e)
-        finally:
-            sock.close()
+        for name in self.peers:
+            server_address = self.peers[name]
+            sock.sendto(data, server_address)
 
     @staticmethod
     def parse_income_msg(msg):
@@ -152,10 +140,6 @@ def main():
 
     while True:
         pass
-
-    # Bug user left immediately after joined...
-    # Jeff has joined the chatroom
-    # Jeff has left the chatroom
 
     # one thread listen for message the user inputs
 #    while True:
