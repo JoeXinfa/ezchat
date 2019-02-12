@@ -5,7 +5,6 @@ A chat system
 
 import argparse
 import socket
-import sys
 
 BUFFER_SIZE = 2048 # what's the best size?
 
@@ -44,7 +43,8 @@ class Chatter:
         print('My UDP port is: {}'.format(self.udp_port))
 
     def make_msg_helo(self):
-        ip_address = socket.gethostbyname(self.host_name)
+        #ip_address = socket.gethostbyname(self.host_name)
+        ip_address = socket.gethostbyname(socket.gethostname())
         self.msg_helo = "HELO " + self.screen_name + " " +\
             ip_address + " " + str(self.udp_port) + "\n"
 
@@ -81,10 +81,28 @@ class Chatter:
         records = msg.split(':')
         for record in records:
             name, ip, port = record.split(' ')
-            self.peers[name] = (ip, port)
+            self.peers[name] = (ip, int(port))
             if name != self.screen_name:
                 print("{} is in the chatroom".format(name))
         print("{} accepted to the chatroom".format(self.screen_name))
+
+    def get_input(self):
+        msg = input(self.screen_name + ": ")
+        return "MESG " + self.screen_name + ": " + msg + "\n"
+
+    def send_to_all(self, msg):
+        # Create a UDP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        data = msg.encode()
+        try:
+            for name in self.peers:
+                server_address = self.peers[name]
+                sock.sendto(data, server_address)
+        except Exception as e:
+            print("Unable to send UDP messages")
+            print(e)
+        finally:
+            sock.close()
 
 
 def main():
@@ -101,6 +119,15 @@ def main():
     
     chatter = Chatter(screen_name, host_name, tcp_port)
     #print("chatter name: {}".format(chatter.screen_name))
+
+    # one thread listen for messages the user inputs
+    while True:
+        msg = chatter.get_input()
+        chatter.send_to_all(msg)
+
+    # Bug user left immediately after joined...
+    # Jeff has joined the chatroom
+    # Jeff has left the chatroom
 
 
 if __name__ == '__main__':
