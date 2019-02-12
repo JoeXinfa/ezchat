@@ -104,6 +104,10 @@ class Chatter:
         finally:
             sock.close()
 
+    @staticmethod
+    def parse_income_msg(msg):
+        print(msg[5:])
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -120,15 +124,26 @@ def main():
     chatter = Chatter(screen_name, host_name, tcp_port)
     #print("chatter name: {}".format(chatter.screen_name))
 
-    # one thread listen for messages the user inputs
-    while True:
-        msg = chatter.get_input()
-        chatter.send_to_all(msg)
+    # one thread listen for message the user inputs
+#    while True:
+#        msg = chatter.get_input()
+#        chatter.send_to_all(msg)
 
     # Bug user left immediately after joined...
     # Jeff has joined the chatroom
     # Jeff has left the chatroom
 
+    # another thread listen for peers' messages on the UDP port
+    while True:
+        try:
+            data, address = chatter.udp_socket.recv(BUFFER_SIZE)
+            #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
+        except Exception as e:
+            print(e)
+        finally:
+            chatter.udp_socket.close()
+        if data:
+            chatter.parse_income_msg(data)
 
 if __name__ == '__main__':
     main()
