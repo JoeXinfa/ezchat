@@ -5,8 +5,27 @@ A chat system
 
 import argparse
 import socket
+import threading
 
 BUFFER_SIZE = 2048 # what's the best size?
+
+
+class myThread(threading.Thread):
+   def __init__(self, chatter, job):
+      threading.Thread.__init__(self)
+      self.chatter = chatter
+      self.job = job
+   def run(self):
+       if self.job == "send":
+           while True:
+               msg = self.chatter.get_input()
+               self.chatter.send_to_all(msg)
+       if self.job == "receive":
+           while True:
+               data, address = self.chatter.udp_socket.recv(BUFFER_SIZE)
+               #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
+               if data:
+                   self.chatter.parse_income_msg(data)
 
 
 class Chatter:
@@ -122,28 +141,39 @@ def main():
     tcp_port = args.tcp_port
     
     chatter = Chatter(screen_name, host_name, tcp_port)
-    #print("chatter name: {}".format(chatter.screen_name))
+
+    # Create new threads
+    thread1 = myThread(chatter, "send")
+    thread2 = myThread(chatter, "receive")
+
+    # Start new Threads
+    thread1.start()
+    thread2.start()
+
+    while True:
+        pass
+
+    # Bug user left immediately after joined...
+    # Jeff has joined the chatroom
+    # Jeff has left the chatroom
 
     # one thread listen for message the user inputs
 #    while True:
 #        msg = chatter.get_input()
 #        chatter.send_to_all(msg)
 
-    # Bug user left immediately after joined...
-    # Jeff has joined the chatroom
-    # Jeff has left the chatroom
-
     # another thread listen for peers' messages on the UDP port
-    while True:
-        try:
-            data, address = chatter.udp_socket.recv(BUFFER_SIZE)
-            #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
-        except Exception as e:
-            print(e)
-        finally:
-            chatter.udp_socket.close()
-        if data:
-            chatter.parse_income_msg(data)
+#    while True:
+#        try:
+#            data, address = chatter.udp_socket.recv(BUFFER_SIZE)
+#            #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
+#        except Exception as e:
+#            print(e)
+#        finally:
+#            chatter.udp_socket.close()
+#        if data:
+#            chatter.parse_income_msg(data)
+
 
 if __name__ == '__main__':
     main()
