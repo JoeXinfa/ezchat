@@ -7,6 +7,8 @@ import argparse
 import socket
 import sys
 
+BUFFER_SIZE = 2048 # what's the best size?
+
 
 class Chatter:
 
@@ -16,6 +18,9 @@ class Chatter:
         self.tcp_port = tcp_port
         self.set_tcp_socket()
         self.set_udp_socket()
+        self.peers = {}
+        self.make_msg_helo()
+        self.send_msg_helo()
 
     def set_tcp_socket(self):
         # Create a TCP/IP socket
@@ -37,6 +42,49 @@ class Chatter:
         self.udp_socket = sock
         self.udp_port = sock.getsockname()[1]
         print('My UDP port is: {}'.format(self.udp_port))
+
+    def make_msg_helo(self):
+        ip_address = socket.gethostbyname(self.host_name)
+        self.msg_helo = "HELO " + self.screen_name + " " +\
+            ip_address + " " + str(self.udp_port) + "\n"
+
+    def send_msg_helo(self):
+        try:
+            self.tcp_socket.send(self.msg_helo.encode())
+            # To fix getting partial response from the server
+            msg_expected = ' '
+            while msg_expected[-1] != '\n':
+                msg_received = self.tcp_socket.recv(BUFFER_SIZE)
+                msg_received = msg_received.decode("utf-8")
+                msg_expected += msg_received
+            msg_expected = msg_expected[1:]
+            #print("msg_from_server =", msg_expected)
+            self.deal_server_response_to_helo(msg_expected)
+        except Exception as e:
+            print(e)
+            raise(e)
+        finally:
+            self.tcp_socket.close()
+
+    def deal_server_response_to_helo(self, msg):
+        if msg.startswith("ACPT"):
+            self.parse_server_acpt(msg[5:])
+        elif msg.startswith("RJCT"):
+            screen_name = msg[5:].replace('\n', '')
+            print("Screen Name already exists: {}".format(screen_name))
+            exit()
+        else:
+            raise Exception("Unknown response: {}".format(msg))
+
+    def parse_server_acpt(self, msg):
+        msg.replace('\n', '') # trim newline
+        records = msg.split(':')
+        for record in records:
+            name, ip, port = record.split(' ')
+            self.peers[name] = (ip, port)
+            if name != self.screen_name:
+                print("{} is in the chatroom".format(name))
+        print("{} accepted to the chatroom".format(self.screen_name))
 
 
 def main():
