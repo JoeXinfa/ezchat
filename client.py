@@ -28,12 +28,14 @@ class ReceiveThread(threading.Thread):
        while True:
            msg, address = self.chatter.udp_socket.recvfrom(BUFFER_SIZE)
            msg = msg.decode("utf-8")
-           if msg.startswith("JOIN"):
-               self.chatter.parse_server_join(msg)
            if msg.startswith("MESG"):
                self.chatter.parse_income_msg(msg)
-           if msg.startswith("EXIT"):
+           elif msg.startswith("JOIN"):
+               self.chatter.parse_server_join(msg)
+           elif msg.startswith("EXIT"):
                self.chatter.parse_server_exit(msg)
+           else:
+               raise Exception("Unknown message: {}".format(msg))
 
 
 class Chatter:
@@ -91,11 +93,15 @@ class Chatter:
         if msg.startswith("ACPT"):
             self.parse_server_acpt(msg)
         elif msg.startswith("RJCT"):
-            screen_name = msg[5:].replace('\n', '')
-            print("Screen Name already exists: {}".format(screen_name))
-            exit()
+            self.parse_server_rjct(msg)
         else:
             raise Exception("Unknown response: {}".format(msg))
+
+    def parse_server_rjct(self, msg):
+        name = msg[5:].replace('\n', '')
+        print("Screen Name already exists: {}".format(name))
+        exit()
+        # TODO how to let user keep using the terminal after this?
 
     def parse_server_acpt(self, msg):
         msg = msg[5:].replace('\n', '')
@@ -119,9 +125,15 @@ class Chatter:
         print("{} has left the chatroom".format(name))
         self.peers.pop(name, None)
 
+    @staticmethod
+    def parse_income_msg(msg):
+        print(msg[5:])
+
     def get_input(self):
         msg = input(self.screen_name + ": ")
         return "MESG " + self.screen_name + ": " + msg + "\n"
+        # TODO how to let user Ctrl+C to exit the chat?
+        # handle emit EXIT message and can keep use that terminal?
 
     def send_to_all(self, msg):
         # Create a UDP socket
@@ -130,10 +142,6 @@ class Chatter:
         for name in self.peers:
             server_address = self.peers[name]
             sock.sendto(data, server_address)
-
-    @staticmethod
-    def parse_income_msg(msg):
-        print(msg[5:])
 
 
 def main():
@@ -149,7 +157,6 @@ def main():
     tcp_port = args.tcp_port
     
     chatter = Chatter(screen_name, host_name, tcp_port)
-
     recv = ReceiveThread(chatter)
     send = SendThread(chatter)
 
