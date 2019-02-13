@@ -10,22 +10,30 @@ import threading
 BUFFER_SIZE = 2048 # what's the best size?
 
 
-class myThread(threading.Thread):
-   def __init__(self, chatter, job):
+class SendThread(threading.Thread):
+   def __init__(self, chatter):
       threading.Thread.__init__(self)
       self.chatter = chatter
-      self.job = job
    def run(self):
-       if self.job == "send":
-           while True:
-               msg = self.chatter.get_input()
-               self.chatter.send_to_all(msg)
-       if self.job == "receive":
-           while True:
-               data, address = self.chatter.udp_socket.recv(BUFFER_SIZE)
-               #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
-               if data:
-                   self.chatter.parse_income_msg(data)
+       while True:
+           msg = self.chatter.get_input()
+           self.chatter.send_to_all(msg)
+
+
+class ReceiveThread(threading.Thread):
+   def __init__(self, chatter):
+      threading.Thread.__init__(self)
+      self.chatter = chatter
+   def run(self):
+       while True:
+           msg, address = self.chatter.udp_socket.recvfrom(BUFFER_SIZE)
+           msg = msg.decode("utf-8")
+           if msg.startswith("JOIN"):
+               self.chatter.parse_server_join(msg)
+           if msg.startswith("MESG"):
+               self.chatter.parse_income_msg(msg)
+           if msg.startswith("EXIT"):
+               pass
 
 
 class Chatter:
@@ -37,8 +45,8 @@ class Chatter:
         self.set_tcp_socket()
         self.set_udp_socket()
         self.peers = {}
-        self.make_msg_helo()
-        self.send_msg_helo()
+#        self.make_msg_helo()
+#        self.send_msg_helo()
 
     def set_tcp_socket(self):
         # Create a TCP/IP socket
@@ -62,8 +70,8 @@ class Chatter:
         print('My UDP port is: {}'.format(self.udp_port))
 
     def make_msg_helo(self):
-        #ip_address = socket.gethostbyname(self.host_name)
-        ip_address = socket.gethostbyname(socket.gethostname())
+        ip_address = socket.gethostbyname(self.host_name)
+        #ip_address = socket.gethostbyname(socket.gethostname()) # not work?
         self.msg_helo = "HELO " + self.screen_name + " " +\
             ip_address + " " + str(self.udp_port) + "\n"
 
@@ -81,7 +89,7 @@ class Chatter:
 
     def deal_server_response_to_helo(self, msg):
         if msg.startswith("ACPT"):
-            self.parse_server_acpt(msg[5:])
+            self.parse_server_acpt(msg)
         elif msg.startswith("RJCT"):
             screen_name = msg[5:].replace('\n', '')
             print("Screen Name already exists: {}".format(screen_name))
@@ -90,14 +98,21 @@ class Chatter:
             raise Exception("Unknown response: {}".format(msg))
 
     def parse_server_acpt(self, msg):
-        msg.replace('\n', '') # trim newline
+        msg = msg[5:].replace('\n', '') # trim newline
         records = msg.split(':')
         for record in records:
             name, ip, port = record.split(' ')
             self.peers[name] = (ip, int(port))
             if name != self.screen_name:
                 print("{} is in the chatroom".format(name))
-        print("{} accepted to the chatroom".format(self.screen_name))
+
+    def parse_server_join(self, msg):
+        msg = msg[5:].replace('\n', '') # trim newline
+        name, ip, port = msg.split(' ')
+        if name == self.screen_name:
+            print("{} accepted to the chatroom".format(name))
+        if name not in self.peers:
+            self.peers[name] = (ip, int(port))
 
     def get_input(self):
         msg = input(self.screen_name + ": ")
@@ -130,33 +145,13 @@ def main():
     
     chatter = Chatter(screen_name, host_name, tcp_port)
 
-    # Create new threads
-    thread1 = myThread(chatter, "send")
-    thread2 = myThread(chatter, "receive")
+    recv = ReceiveThread(chatter)
+    send = SendThread(chatter)
 
-    # Start new Threads
-    thread1.start()
-    thread2.start()
-
-    while True:
-        pass
-
-    # one thread listen for message the user inputs
-#    while True:
-#        msg = chatter.get_input()
-#        chatter.send_to_all(msg)
-
-    # another thread listen for peers' messages on the UDP port
-#    while True:
-#        try:
-#            data, address = chatter.udp_socket.recv(BUFFER_SIZE)
-#            #data, address = chatter.udp_socket.recvfrom(BUFFER_SIZE)
-#        except Exception as e:
-#            print(e)
-#        finally:
-#            chatter.udp_socket.close()
-#        if data:
-#            chatter.parse_income_msg(data)
+    recv.start()
+    chatter.make_msg_helo()
+    chatter.send_msg_helo()
+    send.start()
 
 
 if __name__ == '__main__':
