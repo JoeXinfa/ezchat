@@ -33,7 +33,7 @@ class ReceiveThread(threading.Thread):
            if msg.startswith("MESG"):
                self.chatter.parse_income_msg(msg)
            if msg.startswith("EXIT"):
-               pass
+               self.chatter.parse_server_exit(msg)
 
 
 class Chatter:
@@ -98,7 +98,7 @@ class Chatter:
             raise Exception("Unknown response: {}".format(msg))
 
     def parse_server_acpt(self, msg):
-        msg = msg[5:].replace('\n', '') # trim newline
+        msg = msg[5:].replace('\n', '')
         records = msg.split(':')
         for record in records:
             name, ip, port = record.split(' ')
@@ -107,12 +107,17 @@ class Chatter:
                 print("{} is in the chatroom".format(name))
 
     def parse_server_join(self, msg):
-        msg = msg[5:].replace('\n', '') # trim newline
+        msg = msg[5:].replace('\n', '')
         name, ip, port = msg.split(' ')
         if name == self.screen_name:
             print("{} accepted to the chatroom".format(name))
         if name not in self.peers:
             self.peers[name] = (ip, int(port))
+
+    def parse_server_exit(self, msg):
+        name = msg[5:].replace('\n', '')
+        print("{} has left the chatroom".format(name))
+        self.peers.pop(name, None)
 
     def get_input(self):
         msg = input(self.screen_name + ": ")
