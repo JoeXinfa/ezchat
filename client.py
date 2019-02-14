@@ -43,12 +43,12 @@ class Chatter:
     def __init__(self, screen_name, server_hostname, tcp_port):
         self.screen_name = screen_name
         self.server_hostname = server_hostname
+        self.client_hostname = socket.gethostname()
+        self.ip_address = socket.gethostbyname(self.client_hostname)
         self.tcp_port = tcp_port
         self.set_tcp_socket()
         self.set_udp_socket()
         self.peers = {}
-#        self.make_msg_helo()
-#        self.send_msg_helo()
 
     def set_tcp_socket(self):
         # Create a TCP/IP socket
@@ -64,18 +64,16 @@ class Chatter:
         # Create a UDP/IP socket -> DGRAM
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Bind the socket to a port of OS's choosing
-        server_address = (self.server_hostname, port)
-        sock.bind(server_address)
+        client_address = (self.client_hostname, port)
+        sock.bind(client_address)
         # To find what port the OS picked, call getsockname()
         self.udp_socket = sock
         self.udp_port = sock.getsockname()[1]
         print('My UDP port is: {}'.format(self.udp_port))
 
     def make_msg_helo(self):
-        ip_address = socket.gethostbyname(self.server_hostname)
-        #ip_address = socket.gethostbyname(socket.gethostname()) # not work?
         self.msg_helo = "HELO " + self.screen_name + " " +\
-            ip_address + " " + str(self.udp_port) + "\n"
+            self.ip_address + " " + str(self.udp_port) + "\n"
 
     def send_msg_helo(self):
         self.tcp_socket.send(self.msg_helo.encode())
