@@ -136,12 +136,10 @@ class Chatter:
         # handle emit EXIT message and can keep use that terminal?
 
     def send_to_all(self, msg):
-        # Create a UDP socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         data = msg.encode()
         for name in self.peers:
             server_address = self.peers[name]
-            sock.sendto(data, server_address)
+            self.udp_socket.sendto(data, server_address)
 
 
 def main():
