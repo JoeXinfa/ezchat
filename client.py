@@ -40,9 +40,9 @@ class ReceiveThread(threading.Thread):
 
 class Chatter:
 
-    def __init__(self, screen_name, host_name, tcp_port):
+    def __init__(self, screen_name, server_hostname, tcp_port):
         self.screen_name = screen_name
-        self.host_name = host_name
+        self.server_hostname = server_hostname
         self.tcp_port = tcp_port
         self.set_tcp_socket()
         self.set_udp_socket()
@@ -54,7 +54,7 @@ class Chatter:
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Bind the socket to the port
-        server_address = (self.host_name, self.tcp_port)
+        server_address = (self.server_hostname, self.tcp_port)
         #print('connecting to {} port {}'.format(*server_address))
         sock.connect(server_address)
         self.tcp_socket = sock
@@ -64,7 +64,7 @@ class Chatter:
         # Create a UDP/IP socket -> DGRAM
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Bind the socket to a port of OS's choosing
-        server_address = (self.host_name, port)
+        server_address = (self.server_hostname, port)
         sock.bind(server_address)
         # To find what port the OS picked, call getsockname()
         self.udp_socket = sock
@@ -72,7 +72,7 @@ class Chatter:
         print('My UDP port is: {}'.format(self.udp_port))
 
     def make_msg_helo(self):
-        ip_address = socket.gethostbyname(self.host_name)
+        ip_address = socket.gethostbyname(self.server_hostname)
         #ip_address = socket.gethostbyname(socket.gethostname()) # not work?
         self.msg_helo = "HELO " + self.screen_name + " " +\
             ip_address + " " + str(self.udp_port) + "\n"
@@ -145,16 +145,16 @@ class Chatter:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("screen_name", help="Your screen/user name")
-    parser.add_argument("host_name", help="The server hostname")
+    parser.add_argument("server_hostname", help="The server hostname")
     parser.add_argument("tcp_port", help="The server welcome tcp port", type=int)
 
     # parse the arguments
     args = parser.parse_args()
     screen_name = args.screen_name
-    host_name = args.host_name
+    server_hostname = args.server_hostname
     tcp_port = args.tcp_port
     
-    chatter = Chatter(screen_name, host_name, tcp_port)
+    chatter = Chatter(screen_name, server_hostname, tcp_port)
     recv = ReceiveThread(chatter)
     send = SendThread(chatter)
 
