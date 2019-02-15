@@ -17,7 +17,7 @@ class SendThread(threading.Thread):
    def run(self):
        while True:
            msg = self.chatter.get_input()
-           self.chatter.send_to_all(msg)
+           self.chatter.send_to_peers(msg)
 
 
 class ReceiveThread(threading.Thread):
@@ -106,16 +106,18 @@ class Chatter:
         records = msg.split(':')
         for record in records:
             name, ip, port = record.split(' ')
-            self.peers[name] = (ip, int(port))
             if name != self.screen_name:
+                self.peers[name] = (ip, int(port))
                 print("{} is in the chatroom".format(name))
 
     def parse_server_join(self, msg):
         msg = msg[5:].replace('\n', '')
         name, ip, port = msg.split(' ')
         if name == self.screen_name:
+            # received by self chatter
             print("{} accepted to the chatroom".format(name))
-        if name not in self.peers:
+        else:
+            # received by peer chatters
             self.peers[name] = (ip, int(port))
 
     def parse_server_exit(self, msg):
@@ -133,7 +135,7 @@ class Chatter:
         # TODO how to let user Ctrl+C to exit the chat?
         # handle emit EXIT message and can keep use that terminal?
 
-    def send_to_all(self, msg):
+    def send_to_peers(self, msg):
         data = msg.encode()
         for name in self.peers:
             server_address = self.peers[name]
