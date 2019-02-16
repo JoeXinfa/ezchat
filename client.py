@@ -6,7 +6,9 @@ A chat system
 import argparse
 import socket
 import threading
+import sys
 
+DEBUG = True
 BUFFER_SIZE = 2048 # what's the best size?
 
 
@@ -16,8 +18,15 @@ class SendThread(threading.Thread):
       self.chatter = chatter
    def run(self):
        while True:
-           msg = self.chatter.get_input()
-           self.chatter.send_to_peers(msg)
+           try:
+               msg = self.chatter.get_input()
+               self.chatter.send_to_peers(msg)
+           except (KeyboardInterrupt, EOFError):
+               if DEBUG:
+                   print("You pressed Ctrl+C keys")
+               self.chatter.send_exit_to_server()
+               # TODO can user keep use this terminal?
+               # Do Mac or Linux terminals have this issue?
 
 
 class ReceiveThread(threading.Thread):
@@ -98,7 +107,7 @@ class Chatter:
     def parse_server_rjct(self, msg):
         name = msg[5:].replace('\n', '')
         print("Screen Name already exists: {}".format(name))
-        exit()
+        sys.exit()
         # TODO how to let user keep using the terminal after this?
 
     def parse_server_acpt(self, msg):
@@ -132,14 +141,20 @@ class Chatter:
     def get_input(self):
         msg = input(self.screen_name + ": ")
         return "MESG " + self.screen_name + ": " + msg + "\n"
-        # TODO how to let user Ctrl+C to exit the chat?
-        # handle emit EXIT message and can keep use that terminal?
 
     def send_to_peers(self, msg):
         data = msg.encode()
         for name in self.peers:
             server_address = self.peers[name]
             self.udp_socket.sendto(data, server_address)
+
+    def send_exit_to_server(self):
+        if DEBUG:
+            print("You send EXIT msg to server")
+        msg = "EXIT\n"
+        self.tcp_socket.send(msg.encode())
+        #TODO close sockets and kill threads?
+        sys.exit()
 
 
 def main():
