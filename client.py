@@ -53,11 +53,19 @@ class Chatter:
         self.screen_name = screen_name
         self.server_hostname = server_hostname
         self.client_hostname = socket.gethostname()
+        #self.ip_address = self.get_ip_address()
         self.ip_address = socket.gethostbyname(self.client_hostname)
         self.tcp_port = tcp_port
         self.set_tcp_socket()
         self.set_udp_socket()
         self.peers = {}
+
+    def get_ip_address(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip_address = s.getsockname()[0]
+        s.close()
+        return ip_address
 
     def set_tcp_socket(self):
         # Create a TCP/IP socket
@@ -73,6 +81,7 @@ class Chatter:
         # Create a UDP/IP socket -> DGRAM
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Bind the socket to a port of OS's choosing
+        #client_address = ('10.147.40.204', port)
         client_address = (self.client_hostname, port)
         sock.bind(client_address)
         # To find what port the OS picked, call getsockname()
