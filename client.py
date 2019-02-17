@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 A chat system
+
+How to run
+1) Start server, $java -cp ChatSystem.jar server.YMemD 7575
+2) Start client, $python client.py Joe localhost 7575
+   In general, substitute localhost with the server hostname or IP.
+
 """
 
 import argparse
