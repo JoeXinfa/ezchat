@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-A chat system
+A chat system - client
 
 How to run
 1) Start server, $java -cp ChatSystem.jar server.YMemD 7575
