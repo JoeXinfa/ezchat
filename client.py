@@ -19,38 +19,38 @@ BUFFER_SIZE = 2048 # what's the best size?
 
 
 class SendThread(threading.Thread):
-   def __init__(self, chatter):
-      threading.Thread.__init__(self)
-      self.chatter = chatter
-   def run(self):
-       while True:
-           try:
-               msg = self.chatter.get_input()
-               self.chatter.send_to_peers(msg)
-           except (KeyboardInterrupt, EOFError):
-               if DEBUG:
-                   print("You pressed Ctrl+C keys")
-               self.chatter.send_exit_to_server()
-               # TODO can user keep use this terminal?
-               # Do Mac or Linux terminals have this issue?
+    def __init__(self, chatter):
+        threading.Thread.__init__(self)
+        self.chatter = chatter
+    def run(self):
+        while True:
+            try:
+                msg = self.chatter.get_input()
+                self.chatter.send_to_peers(msg)
+            except (KeyboardInterrupt, EOFError):
+                if DEBUG:
+                    print("You pressed Ctrl+C keys")
+                self.chatter.send_exit_to_server()
+                # TODO can user keep use this terminal?
+                # Do Mac or Linux terminals have this issue?
 
 
 class ReceiveThread(threading.Thread):
-   def __init__(self, chatter):
-      threading.Thread.__init__(self)
-      self.chatter = chatter
-   def run(self):
-       while True:
-           msg, address = self.chatter.udp_socket.recvfrom(BUFFER_SIZE)
-           msg = msg.decode("utf-8")
-           if msg.startswith("MESG"):
-               self.chatter.parse_income_msg(msg)
-           elif msg.startswith("JOIN"):
-               self.chatter.parse_server_join(msg)
-           elif msg.startswith("EXIT"):
-               self.chatter.parse_server_exit(msg)
-           else:
-               raise Exception("Unknown message: {}".format(msg))
+    def __init__(self, chatter):
+        threading.Thread.__init__(self)
+        self.chatter = chatter
+    def run(self):
+        while True:
+            msg, address = self.chatter.udp_socket.recvfrom(BUFFER_SIZE)
+            msg = msg.decode("utf-8")
+            if msg.startswith("MESG"):
+                self.chatter.parse_income_msg(msg)
+            elif msg.startswith("JOIN"):
+                self.chatter.parse_server_join(msg)
+            elif msg.startswith("EXIT"):
+                self.chatter.parse_server_exit(msg)
+            else:
+                raise Exception("Unknown message: {}".format(msg))
 
 
 class Chatter:
