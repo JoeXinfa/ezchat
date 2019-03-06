@@ -56,7 +56,19 @@ class ServantThread(threading.Thread):
         msg = msg.split()
         name, ip, port = msg[1:4]
         member = ChatterMember(name, ip, port)
-        print("member", member.name, member.ip, member.udp_port)
+        members = self.server.get_members()
+        if member.name in members.keys():
+            self.send_msg_rjct(member)
+        else:
+            self.server.add_member(member)
+            self.send_msg_acpt()
+            
+    def send_msg_rjct(self, member):
+        print("reject", member.name)
+
+    def send_msg_acpt(self):
+        members = self.server.get_members()
+        print("accept", members)
 
     def parse_msg_exit(self, msg):
         pass
@@ -67,6 +79,8 @@ class Server:
         self.ip_address = self.get_ip_address()
         self.set_welcome_tcp_socket()
         self.servant_threads = []
+        self.members = {}
+        self.members_lock = threading.Lock()
 
     def get_ip_address(self):
         try:
@@ -99,6 +113,23 @@ class Server:
         # Call listen() puts the socket into server mode
         sock.listen()
         self.welcome_tcp_socket = sock
+
+    def get_members(self):
+        self.members_lock.acquire()
+        members = self.members
+        self.members_lock.release()
+        return members
+
+    def add_member(self, member):
+        self.members_lock.acquire()
+        key = member.name
+        self.members[key] = member
+        self.members_lock.release()
+        self.send_msg_join(member)
+        print("members", self.members)
+        
+    def send_msg_join(self, member):
+        pass
 
 
 def main():
