@@ -142,6 +142,7 @@ class Chatter:
             print("{} accepted to the chatroom".format(name))
         else:
             # received by peer chatters
+            print("{} has joined the chatroom".format(name))
             self.peers[name] = (ip, int(port))
 
     def parse_server_exit(self, msg):
