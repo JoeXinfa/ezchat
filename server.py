@@ -6,7 +6,6 @@ A chat system - server
 import argparse
 import socket
 import threading
-import sys
 
 BUFFER_SIZE = 2048 # what's the best size?
 
@@ -16,6 +15,27 @@ class ChatterMember:
         self.name = name
         self.ip = ip
         self.udp_port = udp_port
+
+
+class Announcer(threading.Thread):
+    """ Push notification to all chatter clients """
+    def __init__(self, message, recipients):
+        super(Announcer, self).__init__()
+        self.message = message
+        self.recipients = recipients
+    def run(self):
+        # Create a UDP/IP socket -> DGRAM
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        msg = self.message.encode()
+        try:
+            for key, member in self.recipients.items():
+                ip, port = member.ip, member.udp_port
+                address = (ip, port)
+                sock.sendto(msg, address)
+        except:
+            raise Exception("Unable to push message: {}".format(self.message))
+        finally:
+            sock.close()
 
 
 class ServantThread(threading.Thread):
@@ -149,7 +169,7 @@ class Server:
     def send_msg_join(self, member):
         name, ip, port = member.name, member.ip, member.udp_port
         msg = "JOIN " + name + " " + ip + " " + str(port) + "\n"
-        # Notify all chatter clients
+        self.notify_members(msg)
 
     def remove_member(self, name):
         self.members_lock.acquire()
@@ -159,7 +179,11 @@ class Server:
 
     def send_msg_exit(self, name):
         msg = "EXIT " + name + "\n"
-        # Notify all chatter clients
+        self.notify_members(msg)
+
+    def notify_members(self, msg):
+        push = Announcer(msg, self.get_members())
+        push.start()
 
 
 def main():
