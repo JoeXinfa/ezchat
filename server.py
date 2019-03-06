@@ -14,7 +14,7 @@ class ChatterMember:
     def __init__(self, name, ip, udp_port):
         self.name = name
         self.ip = ip
-        self.udp_port = udp_port
+        self.udp_port = int(udp_port)
 
 
 class Announcer(threading.Thread):
@@ -137,7 +137,6 @@ class Server:
         sock = self.welcome_tcp_socket
         while True:
             # Wait for a connection
-            print("waiting for a connection")
             connection, client_address = sock.accept()
             servant_thread = ServantThread(self, connection, client_address)
             self.servant_threads.append(servant_thread)
