@@ -27,6 +27,7 @@ class ServantThread(threading.Thread):
         self.client_address = client_address
         self.client_ip = client_address[0]
         self.client_port = client_address[1]
+        self.client_name = None
         
     def run(self):
         self.running = True
@@ -55,6 +56,7 @@ class ServantThread(threading.Thread):
     def parse_msg_helo(self, msg):
         msg = msg.split()
         name, ip, port = msg[1:4]
+        self.client_name = name
         member = ChatterMember(name, ip, port)
         members = self.server.get_members()
         if member.name in members.keys():
@@ -63,15 +65,32 @@ class ServantThread(threading.Thread):
             self.server.add_member(member)
             self.send_msg_acpt()
             
+    def parse_msg_exit(self, msg):
+        # msg == "EXIT\n"
+        self.send_msg_exit()
+
     def send_msg_rjct(self, member):
-        print("reject", member.name)
+        msg = "RJCT " + member.name + "\n"
+        msg = msg.encode()
+        self.connection_socket.send(msg)
 
     def send_msg_acpt(self):
         members = self.server.get_members()
-        print("accept", members)
+        msg = "ACPT "
+        for key, member in members.items():
+            name, ip, port = member.name, member.ip, member.udp_port
+            entry = name + " " + ip + " " + str(port) + ":"
+            msg += entry
+        msg = msg[:-1] + '\n'
+        msg = msg.encode()
+        self.connection_socket.send(msg)
 
-    def parse_msg_exit(self, msg):
-        pass
+    def send_msg_exit(self):
+        name = self.client_name
+        if name is not None:
+            self.server.remove_member(name)
+            self.running = False
+
 
 class Server:
     def __init__(self, welcome_tcp_port):
@@ -126,10 +145,21 @@ class Server:
         self.members[key] = member
         self.members_lock.release()
         self.send_msg_join(member)
-        print("members", self.members)
         
     def send_msg_join(self, member):
-        pass
+        name, ip, port = member.name, member.ip, member.udp_port
+        msg = "JOIN " + name + " " + ip + " " + str(port) + "\n"
+        # Notify all chatter clients
+
+    def remove_member(self, name):
+        self.members_lock.acquire()
+        self.members.pop(name)
+        self.members_lock.release()
+        self.send_msg_exit(name)
+
+    def send_msg_exit(self, name):
+        msg = "EXIT " + name + "\n"
+        # Notify all chatter clients
 
 
 def main():
