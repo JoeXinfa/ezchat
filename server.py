@@ -49,6 +49,7 @@ class ServantThread(threading.Thread):
     def __init__(self, server, connection_socket, client_address):
         super(ServantThread, self).__init__()
         self.server = server # the server parent
+        # TCP between server and client
         self.connection_socket = connection_socket
         self.client_address = client_address
         self.client_ip = client_address[0]
@@ -87,7 +88,6 @@ class ServantThread(threading.Thread):
     def parse_msg_helo(self, msg):
         msg = msg.split()
         name, ip, port = msg[1:4]
-        self.client_name = name
         member = ChatterMember(name, ip, port)
         members = self.server.get_members()
         if member.name in members.keys():
@@ -95,6 +95,7 @@ class ServantThread(threading.Thread):
         else:
             self.server.add_member(member)
             self.send_msg_acpt()
+            self.client_name = name
             
     def parse_msg_exit(self, msg):
         # msg == "EXIT\n"
@@ -120,7 +121,7 @@ class ServantThread(threading.Thread):
         name = self.client_name
         if name is not None:
             self.server.remove_member(name)
-            self.running = False
+        self.running = False # stop the thread
 
 
 class Server:
