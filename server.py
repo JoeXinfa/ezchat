@@ -11,6 +11,13 @@ import sys
 BUFFER_SIZE = 2048 # what's the best size?
 
 
+class ChatterMember:
+    def __init__(self, name, ip, udp_port):
+        self.name = name
+        self.ip = ip
+        self.udp_port = udp_port
+
+
 class ServantThread(threading.Thread):
     
     def __init__(self, server, connection_socket, client_address):
@@ -23,10 +30,36 @@ class ServantThread(threading.Thread):
         
     def run(self):
         self.running = True
+        tcp_socket = self.connection_socket
         while self.running:
-            print("servant thread running", self.client_ip, self.client_port)
-            self.running = False
+            try:
+                msg_expected = ' '
+                while msg_expected[-1] != '\n':
+                    msg_received = tcp_socket.recv(BUFFER_SIZE)
+                    msg_received = msg_received.decode("utf-8")
+                    msg_expected += msg_received
+                msg_expected = msg_expected.strip()
+            except:
+                self.running = False # force stop
+            self.parse_client_message(msg_expected)
 
+    def parse_client_message(self, msg):
+        msg_command = msg[:4]
+        if msg_command == 'HELO':
+            self.parse_msg_helo(msg)
+        elif msg_command == 'EXIT':
+            self.parse_msg_exit(msg)
+        else:
+            raise Exception("Unknown message: {}".format(msg))
+
+    def parse_msg_helo(self, msg):
+        msg = msg.split()
+        name, ip, port = msg[1:4]
+        member = ChatterMember(name, ip, port)
+        print("member", member.name, member.ip, member.udp_port)
+
+    def parse_msg_exit(self, msg):
+        pass
 
 class Server:
     def __init__(self, welcome_tcp_port):
