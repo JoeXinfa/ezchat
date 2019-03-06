@@ -61,8 +61,13 @@ class ServantThread(threading.Thread):
                     msg_expected += msg_received
                 msg_expected = msg_expected.strip()
             except:
-                self.running = False # force stop
-            self.parse_client_message(msg_expected)
+                print("Unknown message {} of length {}".format(
+                    msg_expected, len(msg_expected)))
+            if len(msg_expected) < 4:
+                # user closed the client window
+                self.send_msg_exit()
+            else:
+                self.parse_client_message(msg_expected)
 
     def parse_client_message(self, msg):
         msg_command = msg[:4]
