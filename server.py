@@ -141,7 +141,7 @@ class Server:
             s.close()
         except:
             ip_address = socket.gethostbyname('localhost')
-        ip_address = socket.gethostbyname('localhost')
+#        ip_address = socket.gethostbyname('localhost')
         print("ip_address:", ip_address)
         return ip_address
 
